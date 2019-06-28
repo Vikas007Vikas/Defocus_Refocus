@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="16dp"
+        android:paddingTop="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="16dp"
+        android:scrollbarAlwaysDrawVerticalTrack="true"
+        android:scrollbars="vertical"
+        tools:context="com.example.defocus_mag.MainActivity">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/uploadbutton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="UploadRGB"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/defocusbutton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Defocus"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/deblurbutton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Deblur"
+                android:textSize="10sp" />
+
+            <ImageButton
+                android:id="@+id/savebutton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:src="@drawable/ic_action_name" />
+
+
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="308dp">
+
+            <ImageView
+                android:id="@+id/imageview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_horizontal"
+                android:layout_weight="1"></ImageView>
+
+            <!--<include layout="@layout/include_progress_overlay"/>-->
+            <ProgressBar
+                android:id="@+id/progressBar1"
+                style="?android:attr/progressBarStyleLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_gravity="center" />
+        </FrameLayout>
+
+
+        <!--<ImageView-->
+        <!--android:id="@+id/imageview_f"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_gravity="center_horizontal"-->
+        <!--android:layout_height="1dp"-->
+        <!--android:layout_weight="1"-->
+        <!--/>-->
+
+        <Switch
+            android:id="@+id/defocusSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:checked="false"
+            android:text="Defocus Magnification"
+            android:textOff="Off"
+            android:textOn="On" />
+
+        <Switch
+            android:id="@+id/refocusSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:checked="false"
+            android:text="Refocus image"
+            android:textOff="near-focus"
+            android:textOn="far-focus" />
+
+    </LinearLayout>
+</ScrollView>
