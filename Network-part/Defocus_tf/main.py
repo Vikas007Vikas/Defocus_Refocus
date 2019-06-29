@@ -31,7 +31,7 @@ parser.add_argument("--vgg_path", type = str, default = "./vgg19/vgg19.npy")
 parser.add_argument("--patch_size", type = int, default = 256)
 parser.add_argument("--result_path", type = str, default = "./test_results")
 parser.add_argument("--model_path", type = str, default = "./model")
-parser.add_argument("--in_memory", type = str2bool, default = True)
+#parser.add_argument("--in_memory", type = str2bool, default = True)
 
 ## Optimization
 parser.add_argument("--batch_size", type = int, default = 1)
@@ -80,9 +80,7 @@ if args.mode == 'train':
     train(args, model, sess, saver)
     
 elif args.mode == 'test':
-    f = open("test_results.txt", 'w')
-    test(args, model, sess, saver, f, step = -1, loading = True)
-    f.close()
+    test(args, model, sess, saver, step = -1, loading = True)
     
 elif args.mode == 'test_only':
     test_only(args, model, sess, saver)
