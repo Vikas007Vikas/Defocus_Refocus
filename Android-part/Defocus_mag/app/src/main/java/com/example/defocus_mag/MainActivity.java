@@ -36,6 +36,9 @@ import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity {
 
+    /*
+    Path to the model files which are to be loaded by the AssetManager
+    */
     private static final String MODEL_FILE1 = "file:///android_asset/DeblurrGAN_last_opt.pb";
     private static final String MODEL_FILE2 = "file:///android_asset/defocus_transformed_quantized_last.pb";
     private static final String MODEL_FILE3 = "file:///android_asset/DeblurrGAN_last_opt.pb";
@@ -43,9 +46,11 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int RESULT_LOAD_IMAGE=1;
 
-    //have to add original names
-//    private static final String INPUT_NODE = "image_feed";
-//    private static final String OUTPUT_NODE = "generator_1/deprocess/truediv";
+    /*
+    Names of the Input and Output(Also intermediate) Nodes which are defined by the network in the saved model
+    */
+    // private static final String INPUT_NODE = "image_feed";
+    // private static final String OUTPUT_NODE = "generator_1/deprocess/truediv";
     private static final String INPUT_NODE = "sub:0";
     private static final String MAG_NODE = "magnification:0";
     private static final String DELTA_NODE = "delta:0";
@@ -54,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int WANTED_WIDTH = 256;
     private static final int WANTED_HEIGHT = 256;
 
+    /*
+    GUI part
+    */
     private Button mButtonUpload;
     private ImageButton mButtonSave;
     private Button mButtonDefocus, mButtonDeblur;
@@ -71,6 +79,9 @@ public class MainActivity extends AppCompatActivity {
 
     private TensorFlowInferenceInterface mInferenceInterface;
 
+    /*
+    Below call back function is used to load OpenCV
+    */
     private BaseLoaderCallback mOpenCVCallBack = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
@@ -92,11 +103,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        /*
+        Create instances of the views in the layout defined
+        */
         progressOverlay = findViewById(R.id.progress_overlay);
         progressWheel = findViewById(R.id.progressBar1);
-        progressWheel.setVisibility(View.GONE);
+        progressWheel.setVisibility(View.GONE);//Visibility is initially set to Gone(invisible)
 
-        //mButtonMNIST = findViewById(R.id.mnistbutton);
         mButtonUpload = findViewById(R.id.uploadbutton);
         mButtonSave = findViewById(R.id.savebutton);
         mButtonDefocus = findViewById(R.id.defocusbutton);
@@ -105,6 +118,9 @@ public class MainActivity extends AppCompatActivity {
         mdefocusSwitch = findViewById(R.id.defocusSwitch);
         mrefocusSwitch = findViewById(R.id.refocusSwitch);
 
+        /*
+        On toggling defocusSwitch, followed onClick function is invoked
+        */
         mdefocusSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -116,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     Bitmap inp_image1 = ((BitmapDrawable) mImageView.getDrawable()).getBitmap();
                     mImageView.setImageBitmap(inp_image1);
+                    //Creating a new thread to run the DefocusGan model
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -145,6 +162,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        /*
+        On toggling refocusSwitch, followed onClick function is invoked
+        */
         mrefocusSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -156,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     Bitmap inp_image1 = ((BitmapDrawable) mImageView.getDrawable()).getBitmap();
                     mImageView.setImageBitmap(inp_image1);
+                    //Creating a new thread to run the RefocusGan model
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -185,6 +206,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        /*
+        Function to upload images from the Gallery
+        */
         mButtonUpload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -193,6 +217,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        /*
+        Function to Download/save image from the ImageView to the Gallery
+        */
         mButtonSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -203,44 +230,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        mButtonDefocus.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Bitmap inp_image1 = ((BitmapDrawable)mImageView.getDrawable()).getBitmap();
-//                mImageView.setImageBitmap(inp_image1);
-////                Thread thread = new Thread(MainActivity.this);
-////                thread.start();
-//
-//                //progressWheel.setVisibility(View.VISIBLE);
-//                new Thread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        try {
-//                            runOnUiThread(
-//                                    new Runnable() {
-//                                        @Override
-//                                        public void run() {
-//                                            progressWheel.setVisibility(View.VISIBLE);
-//                                        }
-//                                    });
-//                            runDefocusModel();
-//                            runOnUiThread(
-//                                    new Runnable() {
-//                                        @Override
-//                                        public void run() {
-//                                            progressWheel.setVisibility(View.GONE);
-//                                        }
-//                                    });
-//                        } catch (final Exception e) {
-//                            //if they aren't found, throw an error!
-//                            throw new RuntimeException("Error running deblur!", e);
-//                        }
-//                    }
-//                }).start();
-//                //progressWheel.setVisibility(View.GONE);
-//            }
-//        });
-
+        /*
+        Following function is invoked when Deblur button is clicked
+        */
         mButtonDeblur.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -252,6 +244,7 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     Bitmap inp_image1 = ((BitmapDrawable) mImageView.getDrawable()).getBitmap();
                     mImageView.setImageBitmap(inp_image1);
+                    //Creating a new thread to run the DeblurGan model
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -311,42 +304,32 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-//    @Override
-//    public void run() {
-//        runPix2PixBlurryModel();
-//    }
-
     void runDefocusModel() {
         int[] intValues = new int[WANTED_WIDTH * WANTED_HEIGHT];
         int[] focusValues = new int[WANTED_WIDTH * WANTED_WIDTH];
-        float[] fmeasure = new float[WANTED_WIDTH * WANTED_HEIGHT * 3];
-        float[] floatValues = new float[WANTED_WIDTH * WANTED_HEIGHT * 4];
-        float[] outputValues = new float[WANTED_WIDTH * WANTED_HEIGHT * 3];
-        float[] mag_Values = new float[1];
-//        if(mdefocusSwitch.getText()=="1")
-//            mag_Values[0] = 3.0f;
-//        else
-//            mag_Values[0] = 0.0f;
+        float[] fmeasure = new float[WANTED_WIDTH * WANTED_HEIGHT * 3]; //Focus Measure
+        float[] floatValues = new float[WANTED_WIDTH * WANTED_HEIGHT * 4]; //Input image
+        float[] outputValues = new float[WANTED_WIDTH * WANTED_HEIGHT * 3]; //Output image
+        float[] mag_Values = new float[1]; //Magnification parameter
         mag_Values[0] = 3.0f;
 
         try {
-            //Bitmap bitmap = ((BitmapDrawable)mImageView.getDrawable()).getBitmap();
             if(mdefocusSwitch.isChecked()) {
+                //Get scaledBitmap from the input bitmap obtained from image upload. And set intValues from scaledBitmap
                 Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap_orig, WANTED_WIDTH, WANTED_HEIGHT, true);
                 scaledBitmap.getPixels(intValues, 0, scaledBitmap.getWidth(), 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight());
 
-                //            //Bitmap bitmap_f = ((BitmapDrawable)mImageView_f.getDrawable()).getBitmap();
-                //            Bitmap scaledBitmap_f = Bitmap.createScaledBitmap(mFocusMeasure, WANTED_WIDTH, WANTED_HEIGHT, true);
-                //            scaledBitmap_f.getPixels(focusValues, 0, scaledBitmap_f.getWidth(), 0, 0, scaledBitmap_f.getWidth(), scaledBitmap_f.getHeight());
-
-                //Bitmap inp_image = ((BitmapDrawable)mImageView.getDrawable()).getBitmap();
+                /*
+                Following stub computes Focus measure of the input image
+                */
                 Mat img = new Mat(bitmap_orig.getWidth(), bitmap_orig.getHeight(), CvType.CV_8UC1);
                 Mat focus = new Mat(bitmap_orig.getWidth(), bitmap_orig.getHeight(), CvType.CV_8UC1);
                 Utils.bitmapToMat(bitmap_orig, img);
                 Imgproc.Laplacian(img, focus, CvType.CV_8UC1);
                 Bitmap bitmap_f = scaledBitmap.copy(scaledBitmap.getConfig(), true);
                 Utils.matToBitmap(focus, bitmap_f);
-
+                
+                //Get scaledBitmap_f from the focus measure bitmap. And set focusValues from scaledBitmap_f
                 Bitmap scaledBitmap_f = Bitmap.createScaledBitmap(bitmap_f, WANTED_WIDTH, WANTED_HEIGHT, true);
                 scaledBitmap_f.getPixels(focusValues, 0, scaledBitmap_f.getWidth(), 0, 0, scaledBitmap_f.getWidth(), scaledBitmap_f.getHeight());
 
@@ -357,7 +340,13 @@ public class MainActivity extends AppCompatActivity {
                     fmeasure[i * 3 + 1] = (((val1 >> 8) & 0xFF) - 128.0f) / 128.0f;
                     fmeasure[i * 3 + 2] = ((val1 & 0xFF) - 128.0f) / 128.0f;
                 }
-
+                
+                /*
+                    Red channel   = (rgb >>> 16) & 0xFF;
+                    Green channel = (rgb >>>  8) & 0xFF;
+                    Blue channel  = (rgb >>>  0) & 0xFF;
+                    focus channel = fmeasure[i*3] --> i.e, channel[0] of the focus measure image is set as fourth channel for input image
+                */
                 for (int i = 0; i < intValues.length; ++i) {
                     final int val = intValues[i];
                     floatValues[i * 4] = (((val >> 16) & 0xFF) - 128.0f) / 128.0f;
@@ -365,11 +354,19 @@ public class MainActivity extends AppCompatActivity {
                     floatValues[i * 4 + 2] = ((val & 0xFF) - 128.0f) / 128.0f;
                     floatValues[i * 4 + 3] = fmeasure[i * 3];
                 }
+
+                /*
+                    Following code will run an inference on the input image using the model file stored in assets folder
+                */
                 AssetManager assetManager = getAssets();
                 mInferenceInterface = new TensorFlowInferenceInterface(assetManager, MODEL_FILE2);
+                //Feed the input to the network - Dimensions --> [1, WANTED_HEIGHT, WANTED_WIDTH, 4]
                 mInferenceInterface.feed(INPUT_NODE, floatValues, 1, WANTED_HEIGHT, WANTED_WIDTH, 4);
+                //Feed the Magnification param to the network - Dimensions --> [1,1]
                 mInferenceInterface.feed(MAG_NODE, mag_Values, 1, 1);
+                //Run Output node from model graph by running an inference
                 mInferenceInterface.run(new String[]{OUTPUT_NODE}, false);
+                //Fetch the Output node and store it in outputValues 
                 mInferenceInterface.fetch(OUTPUT_NODE, outputValues);
 
                 for (int i = 0; i < intValues.length; ++i) {
@@ -472,7 +469,6 @@ public class MainActivity extends AppCompatActivity {
             Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, WANTED_WIDTH, WANTED_HEIGHT, true);
             scaledBitmap.getPixels(intValues, 0, scaledBitmap.getWidth(), 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight());
 
-            //Bitmap bitmap_f = ((BitmapDrawable)mImageView_f.getDrawable()).getBitmap();
             Bitmap scaledBitmap_f = Bitmap.createScaledBitmap(mFocusMeasure, WANTED_WIDTH, WANTED_HEIGHT, true);
             scaledBitmap_f.getPixels(focusValues, 0, scaledBitmap_f.getWidth(), 0, 0, scaledBitmap_f.getWidth(), scaledBitmap_f.getHeight());
 
@@ -490,6 +486,7 @@ public class MainActivity extends AppCompatActivity {
                 floatValues[i * 4 + 2] = ((val & 0xFF) - 128.0f) / 128.0f;
                 floatValues[i * 4 + 3] = fmeasure[i * 3];
             }
+            //Inference on Deblur Part of the network
             AssetManager assetManager = getAssets();
             mInferenceInterface = new TensorFlowInferenceInterface(assetManager, MODEL_FILE3);
             mInferenceInterface.feed(INPUT_NODE, floatValues, 1, WANTED_HEIGHT, WANTED_WIDTH, 4);
@@ -505,7 +502,7 @@ public class MainActivity extends AppCompatActivity {
                 floatValues1[i * 6 + 4] = outputValues[i * 3 + 1];
                 floatValues1[i * 6 + 5] = outputValues[i * 3 + 2];
             }
-
+            //Inference on Refocus part of the network
             mInferenceInterface = new TensorFlowInferenceInterface(assetManager, MODEL_FILE4);
             mInferenceInterface.feed(INPUT_NODE, floatValues1, 1, WANTED_HEIGHT, WANTED_WIDTH, 6);
             mInferenceInterface.feed(DELTA_NODE, refocus_parameters, 1, 2);
