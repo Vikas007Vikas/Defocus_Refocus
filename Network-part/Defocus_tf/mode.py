@@ -55,6 +55,7 @@ def train(args, model, sess, saver):
         if epoch % args.log_freq == 0:
             summary = sess.run(merged, feed_dict = {model.inp : inp_batch, model.blur : blur_batch, model.input_z: input_z_batch})
             train_writer.add_summary(summary, epoch)
+            
             """
                 Testing the model while training for knowing how the model is working after each iteration
             """

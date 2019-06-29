@@ -9,7 +9,6 @@ from losses import *
 class Refocus_Net():
     
     def __init__(self, args):
-        #to be checked once
         self.data_loader = dataloader(args)
         
         self.channel = args.channel
@@ -58,7 +57,16 @@ class Refocus_Net():
         
         return x
     
-    def generator(self, x, input_z, reuse = False, name = 'generator'):
+    """
+        GENERATOR MODEL
+        Parameters:
+            x       - input tensor(RGB+RADIANCE)                      --> Dimesions  - [batch_size*256*256*6]
+            delta - Refocus parameter added as a tensor --> Dimensions - [batch_size*z_dim]
+        
+        Returns:
+            output tensor of Dimension - [batch_size*256*256*3]
+    """
+    def generator(self, x, delta, reuse = False, name = 'generator'):
         
         with tf.variable_scope(name_or_scope = name, reuse = reuse):
             _res = x
@@ -74,11 +82,8 @@ class Refocus_Net():
                 x = self.res_block(name = 'res_%02d'%i, x = x, n_feats = self.n_feats * (2 ** self.num_of_down_scale))
 
             #adding magnification layer
-            print input_z
-            #input_z = tf.expand_dims(input_z,0)
-            output_z = slim.fully_connected(input_z, 64*64, activation_fn = None)
+            output_z = slim.fully_connected(delta, 64*64, activation_fn = None)
             output_z = tf.reshape(output_z,[self.batch_size,64,64,1])
-            print output_z
             x = tf.concat([x,output_z],axis = 3)
 
             mult = 2**(self.num_of_down_scale)
@@ -93,47 +98,21 @@ class Refocus_Net():
             x = tf.pad(x, [[0,0],[3,3],[3,3],[0,0]], mode = 'REFLECT')
             x = Conv(name = 'conv_last', x = x, filter_size = 7, in_filters = self.n_feats, out_filters = self.channel, strides = 1, padding = 'VALID')
             x = tf.nn.tanh(x)
+
+            #Learn residual
             x = x + _res[:,:,:,:3]
+
             x = tf.clip_by_value(x, -1.0, 1.0)
             
             return x
-    
-    # def generator1(self, x, reuse = False, name = 'generator'):
-        
-    #     with tf.variable_scope(name_or_scope = name, reuse = reuse):
-    #         x = tf.pad(x, [[0,0],[3,3],[3,3],[0,0]], mode = 'REFLECT')
-    #         x = Conv(name = 'conv1', x = x, filter_size = 7, in_filters = self.channel+self.focus_channel, out_filters = self.n_feats, strides = 1, padding = 'VALID')
-    #         x = instance_norm(name = 'inst_norm1', x = x, dim = self.n_feats)
-    #         x = tf.nn.relu(x)
-            
-    #         for i in range(self.num_of_down_scale):
-    #             x = self.down_scaling_feature(name = 'down_%02d'%i, x = x, n_feats = self.n_feats * (i + 1))
 
-    #         for i in range(self.gen_resblocks):
-    #             x = self.res_block(name = 'res_%02d'%i, x = x, n_feats = self.n_feats * (2 ** self.num_of_down_scale))
-            
-    #         return x
-
-    # def generator2(self, x, inp, reuse = False, name = 'generator'):
-    #     with tf.variable_scope(name_or_scope = name, reuse = reuse):
-    #         mult = 2**(self.num_of_down_scale)
-    #         i = 0
-    #         x = Conv_transpose(name = 'up_%02ddeconv'%i, x = x, filter_size = 3, in_filters = self.n_feats*mult+1, out_filters = (self.n_feats*mult) // 2, fraction = 2, padding = 'SAME')
-    #         x = instance_norm(name = 'up_%02dinstance_norm'%i, x = x, dim = (self.n_feats*mult) // 2)
-    #         x = tf.nn.relu(x)
-
-    #         for i in range(1, self.num_of_down_scale):
-    #             x = self.up_scaling_feature(name = 'up_%02d'%i, x = x, n_feats = self.n_feats * (2 ** (self.num_of_down_scale - i)))
-
-    #         x = tf.pad(x, [[0,0],[3,3],[3,3],[0,0]], mode = 'REFLECT')
-    #         x = Conv(name = 'conv_last', x = x, filter_size = 7, in_filters = self.n_feats, out_filters = self.channel, strides = 1, padding = 'VALID')
-    #         x = tf.nn.tanh(x)
-    #         x = x + inp
-    #         x = tf.clip_by_value(x, -1.0, 1.0)
-            
-    #         return x
-
-
+    """
+        DISCRIMINATOR MODEL
+        Parameters:
+            x - input tensor to the discriminator model --> Dimensions - [batch_size*256*256*3]
+        Returns:
+            output tensor of dimension - [batch_size*1]
+    """
     def discriminator(self, x, reuse = False, name = 'discriminator'):
         
         with tf.variable_scope(name_or_scope = name, reuse = reuse):
@@ -162,58 +141,33 @@ class Refocus_Net():
             
             return x
     
-        
+    """
+        BUILD GRAPH - This function builds the network graph
+    """    
     def build_graph(self):
         
-        if self.in_memory:
-            self.out = tf.placeholder(name = "out", shape = [None, None, None, self.channel], dtype = tf.float32)
-            self.inp = tf.placeholder(name = "inp", shape = [None, None, None, self.channel+self.focus_channel], dtype = tf.float32)
-            #self.sharp = tf.placeholder(name = "sharp", shape = [None, None, None, self.channel], dtype = tf.float32)
-            #self.focus = tf.placeholder(name = "focus", shape = [None, None, None, self.focus_channel], dtype = tf.float32)
-            #self.input_z = tf.placeholder(name = "magnification", shape = [None,self.z_dim], dtype = tf.float32)
-            self.delta = tf.placeholder(tf.float32, name="refocus_parameter", shape = [None,self.z_dim])
+        self.out = tf.placeholder(name = "out", shape = [None, None, None, self.channel], dtype = tf.float32)
+        self.inp = tf.placeholder(name = "inp", shape = [None, None, None, self.channel+self.focus_channel], dtype = tf.float32)
+        self.delta = tf.placeholder(tf.float32, name="refocus_parameter", shape = [None,self.z_dim])
 
-            x = self.inp
-            label = self.out
-            delta = self.delta
-        
-        else:
-            self.data_loader.build_loader()
-            
-            if self.mode == 'test_only':
-                x = self.data_loader.next_batch
-                label = tf.placeholder(name = 'dummy', shape = [None, None, None, self.channel], dtype = tf.float32)
-
-            elif self.mode == 'train' or self.mode == 'test':
-                x = self.data_loader.next_batch[0]
-                label = self.data_loader.next_batch[1]
+        x = self.inp
+        label = self.out
+        delta = self.delta
         
         self.epoch = tf.placeholder(name = 'train_step', shape = None, dtype = tf.int32)
         
         x = (2.0 * x / 255.0) - 1.0
-        #f = (2.0 * f / 255.0) - 1.0
         label = (2.0 * label / 255.0) - 1.0
-        #inp = tf.concat([x,f],axis = 3)
-        #print inp.shape
         
         self.gene_img = self.generator(x, delta, reuse = False)
-        # #adding magnification layer here
-        # #input_z = tf.get_variable('z_dim', [self.batch_size,1])
-        # output_z = slim.fully_connected(self.input_z, 64*64, activation_fn = None)
-        # output_z = tf.reshape(output_z,[self.batch_size,64,64,1])
-        # self.output_z = output_z
-        # print(self.output.shape)
-        # print(self.output_z.shape)
-        # output = tf.concat([self.output,self.output_z],axis = 3)
-        # self.gene_img = self.generator2(output, x, reuse = False)
 
-        print("input_node:",x)
-        print("output_node:",self.gene_img)
+        #Input to the discriminator is the real/label image
         self.real_prob = self.discriminator(label, reuse = False)
+        
+        #Input to the discriminator is the image generated from the generator
         self.fake_prob = self.discriminator(self.gene_img, reuse = True)
         
         epsilon = tf.random_uniform(shape = [self.batch_size, 1, 1, 1], minval = 0.0, maxval = 1.0)
-        
         interpolated_input = epsilon * label + (1 - epsilon) * self.gene_img
         gradient = tf.gradients(self.discriminator(interpolated_input, reuse = True), [interpolated_input])[0]
         GP_loss = tf.reduce_mean(tf.square(tf.sqrt(tf.reduce_mean(tf.square(gradient), axis = [1, 2, 3])) - 1))
@@ -221,6 +175,14 @@ class Refocus_Net():
         d_loss_real = - tf.reduce_mean(self.real_prob)
         d_loss_fake = tf.reduce_mean(self.fake_prob)
         
+        """
+            LOSS FUNCTIONS
+            1.Perceptual Loss or Content loss
+            3.Adversarial loss
+            4.GP_loss
+
+            Generator loss     = Adversarial loss + 100*Content loss 
+        """ 
         if self.mode == 'train':
             self.vgg_net = Vgg19(self.vgg_path)
             self.vgg_net.build(tf.concat([label, self.gene_img], axis = 0))
@@ -239,12 +201,6 @@ class Refocus_Net():
             
             logging_D_loss = tf.summary.scalar(name = 'D_loss', tensor = self.D_loss)   
             logging_G_loss = tf.summary.scalar(name = 'G_loss', tensor = self.G_loss)
-        
-        # self.PSNR = tf.reduce_mean(tf.image.psnr(((self.gene_img + 1.0) / 2.0), ((label + 1.0) / 2.0), max_val = 1.0))
-        # self.ssim = tf.reduce_mean(tf.image.ssim(((self.gene_img + 1.0) / 2.0), ((label + 1.0) / 2.0), max_val = 1.0))
-        
-        # logging_PSNR = tf.summary.scalar(name = 'PSNR', tensor = self.PSNR)
-        # logging_ssim = tf.summary.scalar(name = 'ssim', tensor = self.ssim)
         
         self.output = (self.gene_img + 1.0) * 255.0 / 2.0
         self.output = tf.round(self.output)

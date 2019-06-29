@@ -80,9 +80,7 @@ if args.mode == 'train':
     train(args, model, sess, saver)
     
 elif args.mode == 'test':
-    f = open("test_results.txt", 'w')
-    test(args, model, sess, saver, f, step = -1, loading = True)
-    f.close()
+    test(args, model, sess, saver, step = -1, loading = True)
     
 elif args.mode == 'test_only':
     test_only(args, model, sess, saver)

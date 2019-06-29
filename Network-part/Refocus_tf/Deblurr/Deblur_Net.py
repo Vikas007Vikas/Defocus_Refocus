@@ -9,7 +9,6 @@ from losses import *
 class Deblur_Net():
     
     def __init__(self, args):
-        #to be checked once
         self.data_loader = dataloader(args)
         
         self.channel = args.channel
@@ -58,6 +57,13 @@ class Deblur_Net():
         
         return x
     
+    """
+        GENERATOR MODEL
+        Parameters:
+            x       - input tensor(RGB+FM)                      --> Dimesions  - [batch_size*256*256*4]        
+        Returns:
+            output tensor of Dimension - [batch_size*256*256*3]
+    """
     def generator(self, x, reuse = False, name = 'generator'):
         
         with tf.variable_scope(name_or_scope = name, reuse = reuse):
@@ -84,6 +90,13 @@ class Deblur_Net():
             
             return x
 
+    """
+        DISCRIMINATOR MODEL
+        Parameters:
+            x - input tensor to the discriminator model --> Dimensions - [batch_size*256*256*3]
+        Returns:
+            output tensor of dimension - [batch_size*1]
+    """
     def discriminator(self, x, reuse = False, name = 'discriminator'):
         
         with tf.variable_scope(name_or_scope = name, reuse = reuse):
@@ -112,26 +125,16 @@ class Deblur_Net():
             
             return x
     
-        
+    """
+        BUILD GRAPH - This function builds the network graph
+    """     
     def build_graph(self):
         
-        if self.in_memory:
-            self.radiance = tf.placeholder(name = "radiance", shape = [None, None, None, self.channel], dtype = tf.float32)
-            self.inp = tf.placeholder(name = "inp", shape = [None, None, None, self.channel+self.focus_channel], dtype = tf.float32)
+        self.radiance = tf.placeholder(name = "radiance", shape = [None, None, None, self.channel], dtype = tf.float32)
+        self.inp = tf.placeholder(name = "inp", shape = [None, None, None, self.channel+self.focus_channel], dtype = tf.float32)
 
-            x = self.inp
-            label = self.radiance
-        
-        else:
-            self.data_loader.build_loader()
-            
-            if self.mode == 'test_only':
-                x = self.data_loader.next_batch
-                label = tf.placeholder(name = 'dummy', shape = [None, None, None, self.channel], dtype = tf.float32)
-
-            elif self.mode == 'train' or self.mode == 'test':
-                x = self.data_loader.next_batch[0]
-                label = self.data_loader.next_batch[1]
+        x = self.inp
+        label = self.radiance
         
         self.epoch = tf.placeholder(name = 'train_step', shape = None, dtype = tf.int32)
         
@@ -139,23 +142,14 @@ class Deblur_Net():
         label = (2.0 * label / 255.0) - 1.0
         
         self.gene_img = self.generator(x, reuse = False)
-        # #adding magnification layer here
-        # #input_z = tf.get_variable('z_dim', [self.batch_size,1])
-        # output_z = slim.fully_connected(self.input_z, 64*64, activation_fn = None)
-        # output_z = tf.reshape(output_z,[self.batch_size,64,64,1])
-        # self.output_z = output_z
-        # print(self.output.shape)
-        # print(self.output_z.shape)
-        # output = tf.concat([self.output,self.output_z],axis = 3)
-        # self.gene_img = self.generator2(output, x, reuse = False)
 
-        print("input_node:",x)
-        print("output_node:",self.gene_img)
+        #Input to the discriminator is the real/label image    
         self.real_prob = self.discriminator(label, reuse = False)
+
+        #Input to the discriminator is the image generated from the generator
         self.fake_prob = self.discriminator(self.gene_img, reuse = True)
         
         epsilon = tf.random_uniform(shape = [self.batch_size, 1, 1, 1], minval = 0.0, maxval = 1.0)
-        
         interpolated_input = epsilon * label + (1 - epsilon) * self.gene_img
         gradient = tf.gradients(self.discriminator(interpolated_input, reuse = True), [interpolated_input])[0]
         GP_loss = tf.reduce_mean(tf.square(tf.sqrt(tf.reduce_mean(tf.square(gradient), axis = [1, 2, 3])) - 1))
@@ -163,6 +157,14 @@ class Deblur_Net():
         d_loss_real = - tf.reduce_mean(self.real_prob)
         d_loss_fake = tf.reduce_mean(self.fake_prob)
         
+        """
+            LOSS FUNCTIONS
+            1.Perceptual Loss or Content loss
+            3.Adversarial loss
+            4.GP_loss
+
+            Generator loss     = Adversarial loss + 100*Content loss
+        """   
         if self.mode == 'train':
             self.vgg_net = Vgg19(self.vgg_path)
             self.vgg_net.build(tf.concat([label, self.gene_img], axis = 0))
@@ -181,12 +183,6 @@ class Deblur_Net():
             
             logging_D_loss = tf.summary.scalar(name = 'D_loss', tensor = self.D_loss)   
             logging_G_loss = tf.summary.scalar(name = 'G_loss', tensor = self.G_loss)
-        
-        # self.PSNR = tf.reduce_mean(tf.image.psnr(((self.gene_img + 1.0) / 2.0), ((label + 1.0) / 2.0), max_val = 1.0))
-        # self.ssim = tf.reduce_mean(tf.image.ssim(((self.gene_img + 1.0) / 2.0), ((label + 1.0) / 2.0), max_val = 1.0))
-        
-        # logging_PSNR = tf.summary.scalar(name = 'PSNR', tensor = self.PSNR)
-        # logging_ssim = tf.summary.scalar(name = 'ssim', tensor = self.ssim)
         
         self.output = (self.gene_img + 1.0) * 255.0 / 2.0
         self.output = tf.round(self.output)
