@@ -12,7 +12,7 @@ An implementation of Defocus Magnification described in the paper using tensorfl
 - [GOPRO dataset](https://github.com/SeungjunNah/DeepDeblur_release)
 
 ## Pre-trained model
-- [GOPRO_model]()
+- [GOPRO_model](https://drive.google.com/open?id=1G1eHVri3Nntyi_1zXARZX4MbYHo7pDJZ)
 
 ## Train using GOPRO dataset
 1) Download pretrained VGG19 file
